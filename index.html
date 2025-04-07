@@ -20,18 +20,42 @@
             padding: 10px;
             border-radius: 5px;
         }
+        /* Consistent colors for header (pink/magenta) */
         .token-header {
             background-color: rgba(225, 0, 152, 0.1);
             border: 1px solid rgba(225, 0, 152, 0.2);
         }
+        .header-badge {
+            background-color: rgb(225, 0, 152) !important;
+        }
+        .header-text {
+            color: rgb(225, 0, 152);
+        }
+        
+        /* Consistent colors for payload (purple) */
         .token-payload {
             background-color: rgba(116, 24, 219, 0.1);
             border: 1px solid rgba(116, 24, 219, 0.2);
         }
+        .payload-badge {
+            background-color: rgb(116, 24, 219) !important;
+        }
+        .payload-text {
+            color: rgb(116, 24, 219);
+        }
+        
+        /* Consistent colors for signature (blue) */
         .token-signature {
             background-color: rgba(59, 130, 246, 0.1);
             border: 1px solid rgba(59, 130, 246, 0.2);
         }
+        .signature-badge {
+            background-color: rgb(59, 130, 246) !important;
+        }
+        .signature-text {
+            color: rgb(59, 130, 246);
+        }
+        
         [data-bs-theme="dark"] .token-header {
             background-color: rgba(225, 0, 152, 0.2);
         }
@@ -40,6 +64,10 @@
         }
         [data-bs-theme="dark"] .token-signature {
             background-color: rgba(59, 130, 246, 0.2);
+        }
+        
+        .jwt-token-display {
+            font-family: monospace;
         }
     </style>
 </head>
@@ -71,22 +99,22 @@
                 <form id="jwtForm" class="needs-validation" novalidate>
                     <div class="mb-3">
                         <label for="subject" class="form-label">Subject (sub)</label>
-                        <input type="text" class="form-control" id="subject" required />
+                        <input type="text" class="form-control" id="subject" placeholder="e.g., user123" required />
                     </div>
                     
                     <div class="mb-3">
                         <label for="issuer" class="form-label">Issuer (iss)</label>
-                        <input type="text" class="form-control" id="issuer" required />
+                        <input type="text" class="form-control" id="issuer" placeholder="e.g., myapp.com" required />
                     </div>
                     
                     <div class="mb-3">
                         <label for="audience" class="form-label">Audience (aud)</label>
-                        <input type="text" class="form-control" id="audience" required />
+                        <input type="text" class="form-control" id="audience" placeholder="e.g., api.myapp.com" required />
                     </div>
                     
                     <div class="mb-3">
                         <label for="secretKey" class="form-label">Secret Key</label>
-                        <input type="text" class="form-control" id="secretKey" required />
+                        <input type="text" class="form-control" id="secretKey" placeholder="Enter a strong secret key" required />
                     </div>
                     
                     <button type="submit" class="btn btn-primary">Generate JWT</button>
@@ -96,35 +124,51 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header">
-                        <h5>Preview</h5>
+                        <h5>JWT Structure Preview</h5>
                     </div>
                     <div class="card-body">
-                        <div class="token-part token-header">
-                            <strong>Header:</strong>
-                            <div class="jwt-preview" id="headerPreview">
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge header-badge me-2">Header</span>
+                                <small class="text-muted">Base64Url encoded</small>
+                            </div>
+                            <div class="token-part token-header">
+                                <div class="jwt-preview" id="headerPreview">
 {
   "alg": "HS256",
   "typ": "JWT"
 }
+                                </div>
                             </div>
                         </div>
-                        <div class="token-part token-payload">
-                            <strong>Payload:</strong>
-                            <div class="jwt-preview" id="payloadPreview">
+                        
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge payload-badge me-2">Payload</span>
+                                <small class="text-muted">Base64Url encoded</small>
+                            </div>
+                            <div class="token-part token-payload">
+                                <div class="jwt-preview" id="payloadPreview">
 {
   "sub": "...",
   "iss": "...",
   "aud": "..."
 }
+                                </div>
                             </div>
                         </div>
-                        <div class="token-part token-signature">
-                            <strong>Signature:</strong>
-                            <div class="jwt-preview" id="signaturePreview">HMACSHA256(
+                        
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge signature-badge me-2">Signature</span>
+                            </div>
+                            <div class="token-part token-signature">
+                                <div class="jwt-preview" id="signaturePreview">HMACSHA256(
   base64UrlEncode(header) + "." +
   base64UrlEncode(payload),
   secret
 )</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -134,7 +178,12 @@
         <div id="tokenContainer" class="mt-4 d-none">
             <h3>Generated JWT Token:</h3>
             <div class="p-3 border rounded">
-                <div id="tokenParts" class="mb-2"></div>
+                <div class="text-muted small mb-2">
+                    A JWT consists of three parts separated by dots (.), which are:
+                </div>
+                <div class="jwt-token-display" id="displayToken"></div>
+                <hr>
+                <div class="mb-2">Complete token:</div>
                 <code id="generatedToken" style="word-break: break-all;"></code>
             </div>
             <button id="copyButton" class="btn btn-outline-secondary mt-2">Copy to Clipboard</button>
@@ -226,21 +275,20 @@
             
             // Generate JWT
             try {
-                const jwtParts = generateJWT(subject, issuer, audience, secretKey);
+                const jwtResult = generateJWT(subject, issuer, audience, secretKey);
                 
                 // Show and populate token container
                 const tokenContainer = document.getElementById('tokenContainer');
                 const generatedToken = document.getElementById('generatedToken');
-                const tokenParts = document.getElementById('tokenParts');
+                const displayToken = document.getElementById('displayToken');
                 
                 tokenContainer.classList.remove('d-none');
-                generatedToken.textContent = jwtParts.token;
+                generatedToken.textContent = jwtResult.token;
                 
-                // Display the token parts in a readable format
-                tokenParts.innerHTML = `
-                    <div class="text-muted small mb-2">
-                        <span class="badge text-bg-danger">Header</span>.<span class="badge text-bg-warning">Payload</span>.<span class="badge text-bg-info">Signature</span>
-                    </div>
+                // Color-code the token parts
+                const parts = jwtResult.token.split('.');
+                displayToken.innerHTML = `
+                    <span class="header-text">${parts[0]}</span>.<span class="payload-text">${parts[1]}</span>.<span class="signature-text">${parts[2]}</span>
                 `;
             } catch (error) {
                 alert('Error generating JWT: ' + error.message);
@@ -282,7 +330,7 @@
             const sJWT = KJUR.jws.JWS.sign("HS256", sHeader, sPayload, secretKey);
             
             return {
-                token: sJWT,
+                token: sJWT
             };
         }
     </script>
