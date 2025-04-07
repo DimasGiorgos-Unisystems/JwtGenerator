@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JWT Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.9.0/jsrsasign-all-min.js"></script>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container">
+                <a class="navbar-brand" href="#">JWT Generator</a>
+            </div>
+        </nav>
+    </header>
+    
+    <div class="container mt-5">
+        <h1 class="mb-4">JWT Generator</h1>
+        
+        <form id="jwtForm" class="needs-validation" novalidate>
+            <div class="mb-3">
+                <label for="subject" class="form-label">Subject (sub)</label>
+                <input type="text" class="form-control" id="subject" required />
+            </div>
+            
+            <div class="mb-3">
+                <label for="issuer" class="form-label">Issuer (iss)</label>
+                <input type="text" class="form-control" id="issuer" required />
+            </div>
+            
+            <div class="mb-3">
+                <label for="audience" class="form-label">Audience (aud)</label>
+                <input type="text" class="form-control" id="audience" required />
+            </div>
+            
+            <div class="mb-3">
+                <label for="secretKey" class="form-label">Secret Key</label>
+                <input type="text" class="form-control" id="secretKey" required />
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Generate JWT</button>
+        </form>
+        
+        <div id="tokenContainer" class="mt-4 d-none">
+            <h3>Generated JWT Token:</h3>
+            <div class="p-3 bg-light border rounded">
+                <code id="generatedToken" style="word-break: break-all;"></code>
+            </div>
+            <button id="copyButton" class="btn btn-outline-secondary mt-2">Copy to Clipboard</button>
+        </div>
+    </div>
+
+    <footer class="border-top footer text-muted mt-5 py-3">
+        <div class="container">
+            &copy; <span id="currentYear"></span> - JWT Generator App
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        
+        document.getElementById('jwtForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            if (!this.checkValidity()) {
+                event.stopPropagation();
+                this.classList.add('was-validated');
+                return;
+            }
+            
+            // Get form values
+            const subject = document.getElementById('subject').value;
+            const issuer = document.getElementById('issuer').value;
+            const audience = document.getElementById('audience').value;
+            const secretKey = document.getElementById('secretKey').value;
+            
+            // Generate JWT
+            try {
+                const token = generateJWT(subject, issuer, audience, secretKey);
+                
+                // Show and populate token container
+                const tokenContainer = document.getElementById('tokenContainer');
+                const generatedToken = document.getElementById('generatedToken');
+                tokenContainer.classList.remove('d-none');
+                generatedToken.textContent = token;
+            } catch (error) {
+                alert('Error generating JWT: ' + error.message);
+            }
+        });
+        
+        document.getElementById('copyButton').addEventListener('click', function() {
+            const tokenText = document.getElementById('generatedToken').textContent;
+            navigator.clipboard.writeText(tokenText)
+                .then(() => {
+                    const originalText = this.textContent;
+                    this.textContent = 'Copied!';
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+        });
+        
+        function generateJWT(subject, issuer, audience, secretKey) {
+            // Create header
+            const header = {
+                alg: 'HS256',
+                typ: 'JWT'
+            };
+            
+            // Create payload
+            const payload = {
+                sub: subject,
+                iss: issuer,
+                aud: audience
+            };
+            
+            // Generate JWT using jsrsasign library
+            const sHeader = JSON.stringify(header);
+            const sPayload = JSON.stringify(payload);
+            const sJWT = KJUR.jws.JWS.sign("HS256", sHeader, sPayload, secretKey);
+            
+            return sJWT;
+        }
+    </script>
+</body>
+</html>
